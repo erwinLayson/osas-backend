@@ -2,13 +2,16 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const mysql = require('mysql2');
-const fs = require('fs');
 const path = require('path');
+const {getEnvName} = require("./helper/getEnVName.js");
+
 
 const server = express();
 
+const CLIENT_SIDE_URL = (getEnvName("NODE_ENV") === "production") ? getEnvName("CLIENT_URL_PROD") : getEnvName("CLIENT_URL_DEV");
+
 server.use(cors({
-    origin: "http://localhost:5173",
+    origin: CLIENT_SIDE_URL,
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Role'],
     methods: ['GET','POST','PUT','DELETE','OPTIONS']
@@ -44,10 +47,10 @@ server.use(errorHandler);
 
 // Database config (same shape used by the existing database.js)
 const dbConfig = {
-    host: "localhost",
-    user: "root",
-    password: "",
-    database: "osas_database"
+    host: getEnvName("HOST"),
+    user: getEnvName("USER"),
+    password: getEnvName("PASSWORD"),
+    database: getEnvName("DATABASE_NAME")
 };
 
 async function boot() {
