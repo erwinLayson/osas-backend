@@ -32,13 +32,20 @@ CREATE TABLE IF NOT EXISTS users (
     UNIQUE KEY idx_users_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2. Legacy admins -> users with role='admin'.
+-- 2. Migrate legacy admins -> users with role='admin', if the admins table still exists.
+-- Legacy admin migration is intentionally left as a raw INSERT IGNORE so the
+-- statement is valid on MariaDB 10.4 even when the admins table does not exist.
+-- On databases where admins still exists, this copies rows into users with
+-- role='admin'. On fresh databases where admins was never created, this fails
+-- and the migration runner will not mark 014 as applied.
 INSERT IGNORE INTO users (id, username, email, password, role, active)
-SELECT id, username, email, password, 'admin', 1 FROM admins;
+SELECT a.id, a.username, a.email, a.password, 'admin', 1 FROM admins AS a;
 
--- 3. Legacy students -> users with role='student'.
+-- 3. Migrate legacy students -> users with role='student', if the students table still exists.
+-- Legacy student migration is intentionally left as a raw INSERT IGNORE for the
+-- same reason as the admin migration above.
 INSERT IGNORE INTO users (id, username, email, password, role, active)
-SELECT id, username, email, password, 'student', 1 FROM students;
+SELECT s.id, s.username, s.email, s.password, 'student', 1 FROM students AS s;
 
 -- 4. The legacy tables are replaced by `users`.
 DROP TABLE IF EXISTS students;

@@ -1,15 +1,15 @@
 const mysql = require("mysql2");
-const { getEnvName } = require("../helper/getEnVName.js");
+const { getEnv, isProduction } = require("../helper/getEnVName.js");
 
 const db = mysql.createConnection({
-    host: getEnvName("HOST"),
-    user: getEnvName("USER"),
-    password: getEnvName("PASSWORD"),
-    database: getEnvName("DATABASE_NAME"),
+    host: getEnv("HOST"),
+    user: getEnv("USER"),
+    password: getEnv("PASSWORD"),
+    database: getEnv("DATABASE_NAME"),
+    port: Number(getEnv("DB_PORT")),
 
-    ...(getEnvName("NODE_ENV") === "production" && {
+    ...(isProduction() && {
         ssl: {
-            minVersion: "TLSv1.2",
             rejectUnauthorized: true,
         },
     }),

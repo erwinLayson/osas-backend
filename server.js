@@ -3,14 +3,12 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const mysql = require('mysql2');
 const path = require('path');
-const {getEnvName} = require("./helper/getEnVName.js");
-const dotenv = require('dotenv');
-dotenv.config();
+const {getEnv, isProduction} = require("./helper/getEnVName.js");
 
 
 const server = express();
 
-const CLIENT_SIDE_URL = (getEnvName("NODE_ENV") === "production") ? getEnvName("CLIENT_URL_PROD") : getEnvName("CLIENT_URL_DEV");
+const CLIENT_SIDE_URL = isProduction() ? getEnv("CLIENT_URL_PROD") : getEnv("CLIENT_URL_DEV");
 
 server.use(cors({
     origin: CLIENT_SIDE_URL,
@@ -49,10 +47,10 @@ server.use(errorHandler);
 
 // Database config (same shape used by the existing database.js)
 const dbConfig = {
-    host: getEnvName("HOST"),
-    user: getEnvName("USER"),
-    password: getEnvName("PASSWORD"),
-    database: getEnvName("DATABASE_NAME")
+    host: getEnv("HOST"),
+    user: getEnv("USER"),
+    password: getEnv("PASSWORD"),
+    database: getEnv("DATABASE_NAME")
 };
 
 async function boot() {
@@ -70,6 +68,19 @@ async function boot() {
     } catch (mErr) {
         // Don't crash the server if a migration is non-fatal; log and continue.
         console.warn('Migration run failed (non-fatal):', mErr.message || mErr);
+    }
+
+    // Ensure a default admin account exists so the portal is usable on first start.
+    try {
+        const seed = require('./seed');
+        // seed.js exports an async function when required in module context.
+        if (typeof seed === 'function') {
+            await seed();
+        } else if (seed && typeof seed.default === 'function') {
+            await seed.default();
+        }
+    } catch (sErr) {
+        console.warn('Default admin seed skipped/failed (non-fatal):', sErr.message || sErr);
     }
 
     server.listen(3000, () => {

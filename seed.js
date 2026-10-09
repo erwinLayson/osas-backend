@@ -67,9 +67,17 @@ async function seed() {
   }
 }
 
-seed()
-  .then(() => process.exit(0))
-  .catch((err) => {
-    console.error('Seed failed:', err.message || err);
-    process.exit(1);
-  });
+// ---------------------------------------------------------------------------
+// Module export + CLI guard
+// ---------------------------------------------------------------------------
+
+module.exports = seed;
+
+if (require.main === module) {
+  seed()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error('Seed failed:', err.message || err);
+      process.exit(1);
+    });
+}

@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS `settings` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Seed a default value for allow_grade_edit if it doesn't exist.
+-- Seed a default value for allow_grade_edit if it doesn't exist.
+-- Seed a default value for allow_grade_edit if it doesn't exist.
 INSERT INTO `settings` (setting_key, setting_value)
-SELECT 'allow_grade_edit', 'false' FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM `settings` WHERE setting_key = 'allow_grade_edit');
+VALUES ('allow_grade_edit', 'false')
+ON DUPLICATE KEY UPDATE setting_value = setting_value;
