@@ -4,6 +4,8 @@ const cookieParser = require('cookie-parser');
 const mysql = require('mysql2');
 const path = require('path');
 const {getEnvName} = require("./helper/getEnVName.js");
+const dotenv = require('dotenv');
+dotenv.config();
 
 
 const server = express();
