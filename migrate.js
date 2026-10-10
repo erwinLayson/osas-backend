@@ -31,7 +31,7 @@ const path = require('path');
 // ---------------------------------------------------------------------------
 
 function parseArgs(argv) {
-  const args = { dir: null, env: 'development', seed: false, list: false, upTo: null };
+  const args = { dir: null, env: 'development', seed: false, list: false, upTo: null, reset: false };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--dir' && argv[i + 1]) {
@@ -44,6 +44,8 @@ function parseArgs(argv) {
       args.list = true;
     } else if (a === '--up-to' && argv[i + 1]) {
       args.upTo = argv[++i];
+    } else if (a === '--reset') {
+      args.reset = true;
     } else if (a === '--help' || a === '-h') {
       printHelp();
       process.exit(0);
@@ -65,6 +67,8 @@ Options:
   --list            List pending migrations without running them (dry-run).
   --up-to <n>       Only run migrations up to and including 00n_xxx.sql.
                     Example: --up-to 3 runs 001, 002, 003 and nothing newer.
+  --reset           Clear the migrations tracking table, then re-run all migrations.
+                    Safe for fresh or corrupted DBs: all migration SQL uses CREATE TABLE IF NOT EXISTS.
   --help, -h        Show this help.
 `);
 }
@@ -134,6 +138,15 @@ class Migrator {
     }
     const sql = fs.readFileSync(firstFile, 'utf8');
     await conn.query(sql);
+
+    // Record 001 as applied so the runner doesn't try to re-execute it
+    // (its CREATE TABLE IF NOT EXISTS is idempotent, but we don't want it
+    // in the pending list). Ignore duplicate-key errors if already recorded.
+    try {
+      await this.record(conn, path.basename(firstFile));
+    } catch (dup) {
+      if (!dup.code || dup.code !== 'ER_DUP_ENTRY') throw dup;
+    }
   }
 
   async getApplied(conn) {
@@ -291,25 +304,44 @@ module.exports = { Migrator, runMigrations: async (dbConfig, migrationDir, opts 
 } };
 
 if (require.main === module) {
-  // Load the appropriate .env file before building config.
-  const args = parseArgs(process.argv);
-  const dotenv = require('dotenv');
+  (async () => {
+    // Load the appropriate .env file before building config.
+    const args = parseArgs(process.argv);
+    const dotenv = require('dotenv');
 
-  if (args.env === 'development') {
-    dotenv.config();
-  } else {
-    const envPath = path.resolve(__dirname, `.env.${args.env}`);
-    if (fs.existsSync(envPath)) {
-      dotenv.config({ path: envPath });
-      console.log(`Loaded environment from: ${envPath}`);
-    } else {
-      console.warn(`Warning: .env.${args.env} not found at ${envPath}`);
+    if (args.env === 'development') {
       dotenv.config();
+    } else {
+      const envPath = path.resolve(__dirname, `.env.${args.env}`);
+      if (fs.existsSync(envPath)) {
+        dotenv.config({ path: envPath });
+        console.log(`Loaded environment from: ${envPath}`);
+      } else {
+        console.warn(`Warning: .env.${args.env} not found at ${envPath}`);
+        dotenv.config();
+      }
     }
-  }
 
-  main().catch((err) => {
-    console.error('Unhandled error:', err);
+    // --reset: clear the migrations tracking table so all migrations re-run.
+    // Safe because every migration SQL uses CREATE TABLE IF NOT EXISTS.
+    if (args.reset) {
+      const conn = await mysql.createConnection(buildDbConfig());
+      try {
+        await conn.query('DELETE FROM migrations');
+        console.log('Migrations tracking table cleared.');
+      } finally {
+        await conn.end();
+      }
+    }
+
+    try {
+      await main();
+    } catch (err) {
+      console.error('Unhandled error:', err);
+      process.exit(1);
+    }
+  })().catch((err) => {
+    console.error('Unhandled error in CLI guard:', err);
     process.exit(1);
   });
 }

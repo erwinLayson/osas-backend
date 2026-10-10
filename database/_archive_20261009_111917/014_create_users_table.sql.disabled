@@ -57,19 +57,9 @@ VALUES (14, '014_create_users_table.sql', NOW())
 ON DUPLICATE KEY UPDATE filename = filename, applied_at = applied_at;
 
 -- 6. Idempotent admin seed (safe to run repeatedly).
---    Builds the row from dotenv values; if ADMIN_PASSWORD is empty there is
---    nothing to hash, so the seed is skipped (use seed.js instead).
-DO $$
-DECLARE
-    admin_user  VARCHAR(100) := COALESCE(
-        (SELECT TRIM(value) FROM settings WHERE setting_key = 'admin_username' LIMIT 1), 'admin');
-    admin_email VARCHAR(255) := COALESCE(
-        (SELECT TRIM(value) FROM settings WHERE setting_key = 'admin_email' LIMIT 1), 'admin@osas.com');
-    admin_role  VARCHAR(20)  := COALESCE(
-        (SELECT TRIM(value) FROM settings WHERE setting_key = 'admin_role' LIMIT 1), 'admin');
-BEGIN
-    INSERT INTO users (username, email, password, role, active)
-    SELECT admin_user, admin_email, '', admin_role, 1
-    WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = admin_user)
-      AND TRIM(admin_user) <> '';
-END $$;
+--    Inserts a default admin if no admin row exists yet.
+--    Use seed.js for a hashed password; this inserts an empty password placeholder.
+INSERT INTO users (username, email, password, role, active)
+SELECT 'admin', 'admin@osas.com', '', 'admin', 1
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin');
+

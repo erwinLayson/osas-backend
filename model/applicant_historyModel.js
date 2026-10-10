@@ -19,7 +19,7 @@ class Appicant_history {
 
     static update(id, data, callback) {
         const sql = "UPDATE applicant_history SET name = ?, email = ?, status = ? WHERE id = ?";
-        db.query * (sql, [data], callback);
+        db.query(sql, [data], callback);
     }
 
     static delete(id, callback) {
