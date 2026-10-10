@@ -23,12 +23,10 @@ const ADMIN_PASSWORD =
   getEnv('ADMIN_PASSWORD') || getEnv('DEFAULT_PASSWORD') || 'admin123';
 const ADMIN_ROLE = getEnv('ADMIN_ROLE') || 'admin';
 
-const dbConfig = {
-  host: getEnv('DB_HOST') || getEnv('HOST') || 'localhost',
-  user: getEnv('DB_USER') || getEnv('USER') || 'root',
-  password: getEnv('DB_PASSWORD') || getEnv('PASSWORD') || '',
-  database: getEnv('DB_NAME') || getEnv('DATABASE_NAME') || 'osas_database',
-};
+// Built by the shared helper so seeding uses the same TLS settings as the
+// pool and the migration runner (required by TiDB Cloud et al. in production).
+const { buildDbConfig } = require('./config/dbConfig');
+const dbConfig = buildDbConfig();
 
 async function seed() {
   const conn = await mysql.createConnection(dbConfig);

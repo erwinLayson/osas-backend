@@ -73,14 +73,12 @@ Options:
 `);
 }
 
+// Reuse the shared builder so the CLI migrator connects with the same TLS
+// settings as the pool and the seeded boot path (required by TiDB Cloud).
+const { buildDbConfig: buildSharedDbConfig } = require('./config/dbConfig');
+
 function buildDbConfig() {
-  return {
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'osas_database',
-    multipleStatements: true,
-  };
+  return buildSharedDbConfig({ multipleStatements: true });
 }
 
 function resolveMigrationsDir(provided) {

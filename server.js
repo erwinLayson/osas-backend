@@ -45,13 +45,10 @@ server.use('/settings', settingsRoutes);
 const { errorHandler } = require('./middleware/errorHandler');
 server.use(errorHandler);
 
-// Database config (same shape used by the existing database.js)
-const dbConfig = {
-    host: getEnv("HOST"),
-    user: getEnv("USER"),
-    password: getEnv("PASSWORD"),
-    database: getEnv("DATABASE_NAME")
-};
+// Database config — built by the shared helper so the pool, the migration
+// runner and the seed all use identical settings, including TLS in production.
+const { buildDbConfig } = require('./config/dbConfig');
+const dbConfig = buildDbConfig();
 
 async function boot() {
     const migrate = require('./migrate');

@@ -1,20 +1,7 @@
 const mysql = require("mysql2");
-const { getEnv, isProduction } = require("../helper/getEnVName.js");
+const { buildDbConfig } = require("./dbConfig.js");
 
-const pool = mysql.createPool({
-    host: getEnv("HOST"),
-    user: getEnv("USER"),
-    password: getEnv("PASSWORD"),
-    database: getEnv("DATABASE_NAME"),
-    port: Number(getEnv("DB_PORT")),
-    connectionLimit: 10,
-
-    ...(isProduction() && {
-        ssl: {
-            rejectUnauthorized: true,
-        },
-    }),
-});
+const pool = mysql.createPool(buildDbConfig({ connectionLimit: 10 }));
 
 // Verify pool can get a connection on startup
 pool.getConnection((err, conn) => {
