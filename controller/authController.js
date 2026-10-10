@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+  const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const { getEnv } = require('../config/env');
@@ -7,8 +7,7 @@ const { identifyCurrentUser, ROLES } = require('../authenticate/users');
 const adminModel = require('../model/adminModel');
 const studentModel = require('../model/studentModel');
 const settingsController = require('./settingsController');
-
-const COOKIE_OPTIONS = { sameSite: 'lax', httpOnly: true, secure: false };
+const { sessionCookieOptions } = require('../config/cookies');
 
 /**
  * Unified authentication controller.
@@ -89,13 +88,13 @@ function issueSession(res, user) {
   const payload = { username: user.username, id: user.id, role: user.role };
   const token = jwt.sign(payload, getEnv(cfg.secretKey), { expiresIn: '1h' });
 
-  res.cookie(cfg.cookie, token, COOKIE_OPTIONS);
+  res.cookie(cfg.cookie, token, sessionCookieOptions());
 
   // Drop any session belonging to the other role. Without this, a stale cookie
   // from a previous login on the same browser can win identifyCurrentUser()
   // (it checks roles in order) and hand the user the wrong account type.
   for (const [role, roleCfg] of Object.entries(ROLES)) {
-    if (role !== user.role) res.clearCookie(roleCfg.cookie, COOKIE_OPTIONS);
+    if (role !== user.role) res.clearCookie(roleCfg.cookie, sessionCookieOptions());
   }
 
   return token;
@@ -198,8 +197,8 @@ const authController = {
    * POST /auth/logout — clear both session cookies.
    */
   logout(req, res) {
-    res.clearCookie(ROLES.admin.cookie, COOKIE_OPTIONS);
-    res.clearCookie(ROLES.student.cookie, COOKIE_OPTIONS);
+    res.clearCookie(ROLES.admin.cookie, sessionCookieOptions());
+    res.clearCookie(ROLES.student.cookie, sessionCookieOptions());
     return res.status(200).json({ success: true, message: 'Logout successful' });
   },
 };

@@ -8,6 +8,11 @@ const {getEnv, isProduction} = require("./helper/getEnVName.js");
 
 const server = express();
 
+// Render terminates TLS at its proxy and forwards X-Forwarded-* headers, so
+// Express must trust the first hop to see the request as https. Required for
+// Secure session cookies to be seen as coming over a secure connection.
+server.set('trust proxy', 1);
+
 const CLIENT_SIDE_URL = isProduction() ? getEnv("CLIENT_URL_PROD") : getEnv("CLIENT_URL_DEV");
 
 server.use(cors({

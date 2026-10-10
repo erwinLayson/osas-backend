@@ -1,5 +1,6 @@
 const bcrypt = require("bcrypt");
 const { getEnv } = require('../config/env');
+const { sessionCookieOptions } = require('../config/cookies');
 const { sendError } = require('../middleware/errorHandler');
 const {approvalMail, rejectionMail} = require("./shared/mailer");
 
@@ -231,8 +232,9 @@ const studentController = {
                                     const newUsername = updateData.username || student.username;
                                     try {
                                         const newToken = require('jsonwebtoken').sign({ username: newUsername, id: studentId, role: 'student' }, getEnv('STUDENT_LOGIN_SECRET_KEY'), { expiresIn: '1h' });
-                                        res.cookie('studentLogin', newToken, { sameSite: 'lax', httpOnly: true, secure: false });
-                                        return res.status(200).json({ message: 'Profile updated successfully', success: true, token: newToken });
+                                        res.cookie('studentLogin', newToken, sessionCookieOptions());
+                                        // Re-issued session goes only in the cookie, never the body.
+                                        return res.status(200).json({ message: 'Profile updated successfully', success: true });
                                     } catch (e) {
                                         // token issuance failed, still return success
                                         console.warn('Failed to sign new token after profile update', e && e.message);
